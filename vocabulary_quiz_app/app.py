@@ -10,6 +10,9 @@ from vocabulary_quiz_app.quiz_logic import Word, check_answer, draw_word
 
 class VocabularyQuizApp:
     def __init__(self, root: tk.Tk, words: list[Word]) -> None:
+        
+        self.root = root # root for class
+        
         self.words = words
         self.rng = random.Random()
         self.current: Word | None = None
@@ -21,7 +24,7 @@ class VocabularyQuizApp:
         self.default_font.configure(family="NanumGothic", size=12)
 
         root.title("Vocabulary Quiz")
-        root.geometry("420x280")
+        root.geometry("420x340") #Change size for add word button
         root.resizable(False, False)
 
         self.word_var = tk.StringVar(value="단어를 불러오는 중...")
@@ -41,6 +44,9 @@ class VocabularyQuizApp:
         ttk.Button(buttons, text="다음", command=self.next_word).pack(
             side=tk.LEFT, padx=6
         )
+
+        #pop up for add words
+        ttk.Button(root, text="Add Word", command=self.open_add_word_window).pack(pady=(2, 6))
 
         ttk.Label(root, textvariable=self.feedback_var).pack(pady=8)
         ttk.Label(root, textvariable=self.score_var).pack()
@@ -69,3 +75,37 @@ class VocabularyQuizApp:
             self.feedback_var.set(f"오답입니다. 정답: {self.current.meaning}")
         self.score_var.set(f"Score: {self.score}/{self.total}")
         self.check_button.state(["disabled"])
+
+    # Add word to list
+    def open_add_word_window(self) -> None:
+        add_win = tk.Toplevel(self.root)
+        add_win.title("새 단어 추가")
+        add_win.geometry("300x200")
+        add_win.resizable(False, False)
+        
+        ttk.Label(add_win, text="영어 단어:").pack(pady=(15, 2))
+        term_entry = ttk.Entry(add_win, font=("NanumGothic", 11))
+        term_entry.pack(fill=tk.X, padx=20)
+        term_entry.focus()
+
+        ttk.Label(add_win, text="한국어 뜻:").pack(pady=(10, 2))
+        meaning_entry = ttk.Entry(add_win, font=("NanumGothic", 11))
+        meaning_entry.pack(fill=tk.X, padx=20)
+
+        def save_word() -> None:
+            term = term_entry.get().strip()
+            meaning = meaning_entry.get().strip()
+
+            if not term or not meaning: #for forget to add term or meaning
+                messagebox.showwarning("경고", "단어와 뜻을 모두 입력해주세요.", parent=add_win)
+                return
+            
+            # Add word while list is processing
+            #The word will disappear quit and open again
+            new_word = Word(term=term, meaning=meaning)
+            self.words.append(new_word)
+
+            messagebox.showinfo("성공", f"'{term}' 단어가 추가되었습니다!", parent=add_win)
+            add_win.destroy()
+
+        ttk.Button(add_win, text="저장", command=save_word).pack(pady=15)
