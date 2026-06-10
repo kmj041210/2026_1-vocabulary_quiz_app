@@ -3,7 +3,7 @@ from __future__ import annotations
 import random
 import tkinter as tk
 
-from tkinter import ttk, font
+from tkinter import ttk, font, messagebox
 
 from vocabulary_quiz_app.quiz_logic import Word, check_answer, draw_word
 
@@ -24,16 +24,22 @@ class VocabularyQuizApp:
         self.default_font.configure(family="NanumGothic", size=12)
 
         root.title("Vocabulary Quiz")
-        root.geometry("420x340") #Change size for add word button
+        root.geometry("480x360") #Change size for add word button / Change size again for more UI
         root.resizable(False, False)
 
         self.word_var = tk.StringVar(value="단어를 불러오는 중...")
+        
+        self.example_var = tk.StringVar(value="") # example용 변수 추가
+        
         self.feedback_var = tk.StringVar(value="")
         self.score_var = tk.StringVar(value="Score: 0/0")
 
         ttk.Label(root, text="영단어").pack(pady=(16, 4))
-        ttk.Label(root, textvariable=self.word_var, font=("NanumGothic", 24)).pack()
+        ttk.Label(root, textvariable=self.word_var, font=("NanumGothic", 24)).pack(pady=(2, 8))
 
+        # show example under the word
+        ttk.Label(root, textvariable=self.example_var, font=("NanumGothic", 12, "italic")).pack(pady=(2, 8))
+        
         self.answer_entry = ttk.Entry(root, font=("NanumGothic", 14))
         self.answer_entry.pack(pady=12, ipadx=6, ipady=4)
 
@@ -52,6 +58,7 @@ class VocabularyQuizApp:
         ttk.Label(root, textvariable=self.score_var).pack()
 
         self.next_word()
+        
 
     def next_word(self) -> None:
         self.current = draw_word(self.words, self.rng)
@@ -61,6 +68,18 @@ class VocabularyQuizApp:
         self.checked = False
         self.check_button.state(["!disabled"])
         self.answer_entry.focus()
+        
+        #예문 있을때 화면에 나오고 없으면 빈칸으로
+        if self.current.example:
+            self.example_var.set(f'"{self.current.example}"')
+        else:
+            self.example_var.set("")
+        self.answer_entry.delete(0, tk.END)
+        self.feedback_var.set("")
+        self.checked = False
+        self.check_button.state(["!disabled"])
+        self.answer_entry.focus()
+        
 
     def check_current(self) -> None:
         if self.current is None or self.checked:
@@ -80,8 +99,12 @@ class VocabularyQuizApp:
     def open_add_word_window(self) -> None:
         add_win = tk.Toplevel(self.root)
         add_win.title("새 단어 추가")
-        add_win.geometry("300x200")
+        add_win.geometry("320x240") #make more space for example
         add_win.resizable(False, False)
+        
+        #use pop-up page only for prevent user click main page
+        add_win.transient(self.root)
+        add_win.grab_set()
         
         ttk.Label(add_win, text="영어 단어:").pack(pady=(15, 2))
         term_entry = ttk.Entry(add_win, font=("NanumGothic", 11))
@@ -91,10 +114,17 @@ class VocabularyQuizApp:
         ttk.Label(add_win, text="한국어 뜻:").pack(pady=(10, 2))
         meaning_entry = ttk.Entry(add_win, font=("NanumGothic", 11))
         meaning_entry.pack(fill=tk.X, padx=20)
+        
+        #Make space for insert example
+        tk.Label(add_win, text="Example : ").pack(pady=(10, 2))
+        example_entry = ttk.Entry(add_win, font=("NanumGothic", 12))
+        example_entry.pack(fill=tk.X, padx=20) #for design tight
+        
 
         def save_word() -> None:
             term = term_entry.get().strip()
             meaning = meaning_entry.get().strip()
+            example = example_entry.get().strip() # calling example
 
             if not term or not meaning: #for forget to add term or meaning
                 messagebox.showwarning("경고", "단어와 뜻을 모두 입력해주세요.", parent=add_win)
@@ -102,9 +132,10 @@ class VocabularyQuizApp:
             
             # Add word while list is processing
             #The word will disappear quit and open again
-            new_word = Word(term=term, meaning=meaning)
+            #Save example data too
+            new_word = Word(term=term, meaning=meaning, example=example)
             self.words.append(new_word)
-
+            
             messagebox.showinfo("성공", f"'{term}' 단어가 추가되었습니다!", parent=add_win)
             add_win.destroy()
 
